@@ -1,11 +1,16 @@
 const express = require("express");
 const cors = require("cors");
+const bodyParser = require('body-parser')
+const jsonParser = bodyParser.json()
 
-
+const urlencodedParser = bodyParser.urlencoded({ extended: false })
 const app = express();
 require("dotenv").config();
 app.use(cors());
-app.use(express.json());
+// app.use(express.json());
+app.use(bodyParser.json())
+
+
 const mongoose = require("mongoose");
 
 const connectDB = require("./connectMongo");
@@ -22,7 +27,18 @@ const itemSchema = {
   Para3: String,
   Title: String,
 };
+
+const emailSchema = {
+    email : String,
+    connect : Boolean ,
+    message : String
+}
+
+
 const Blog = mongoose.model('Blog', itemSchema);
+
+const Email = mongoose.model('Email',emailSchema);
+
 
 app.get('/', async (req, res) => {
 
@@ -54,6 +70,30 @@ app.get('/', async (req, res) => {
     }
 })
 
+
+
+app.get('/art/:tit', async (req, res) => {
+    try {
+        const data = await Blog.find({
+            $or:[{Title:req.params.tit}]
+        })
+        if (data) {
+            return res.status(200).json({
+                msg: 'Ok',
+                data
+            })
+        }
+        return res.status(404).json({
+            msg: 'Not Found',
+        })
+    } catch (error) {
+        return res.status(500).json({
+            msg: error.message
+        })
+    }
+})
+
+
 app.get('/:id', async (req, res) => {
     try {
         const data = await Blog.findById(req.params.id)
@@ -75,26 +115,50 @@ app.get('/:id', async (req, res) => {
     }
 })
 
+
+
 app.get('/cat/:cat', async (req, res) => {
     try {
-        
         const data = await Blog.find({
             $or:[{cat:req.params.cat}]
         })
-
         if (data) {
             return res.status(200).json({
                 msg: 'Ok',
                 data
             })
         }
-
         return res.status(404).json({
             msg: 'Not Found',
         })
     } catch (error) {
         return res.status(500).json({
             msg: error.message
+        })
+    }
+})
+
+app.post('/subscribe',async (req, res)=> {
+    
+    try {
+        const nemail = new Email({
+            email : req.body.email,
+            connect: false,
+            message: req.body.message
+        })
+        console.log(nemail);
+        console.log(req.body.email)
+        const data = await nemail.save();
+        return res.status(200).json({
+            msg: 'Ok',
+            data
+        })
+
+    } catch (error) {
+        console.log(error)
+        return res.status(500).json({
+            msg: error.message
+            
         })
     }
 })
@@ -111,9 +175,18 @@ const blog = new Blog({
     Title: "How to go deep into the  of ..?"
 })
 
+// const nblog = new Email({
+//     email: "sudhakiransobila@gmail.com",
+// })
+
+//  nblog.save().then(console.log("saved"))
 //  blog.save().then(console.log("added"));
 
 Blog.createCollection().then(function (collection) {
+    console.log('Collection is created!');
+});
+
+Email.createCollection().then(function (collection) {
     console.log('Collection is created!');
 });
 
